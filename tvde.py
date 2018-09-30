@@ -39,8 +39,8 @@ def authenticate(br, host, username, password):
     M = usr.process_challenge(binascii.unhexlify(j['s']), binascii.unhexlify(j['B']))
     req = mechanize.Request('http://' + host + '/authenticate', data = urllib.urlencode({'CSRFtoken' : token, 'M' : binascii.hexlify(M)}))
     r = br.open(req)
-    j = json.decoder.JSONDecoder().decode(r.read()
-)    #print('Got response ' + str(j))
+    j = json.decoder.JSONDecoder().decode(r.read())
+    #print('Got response ' + str(j))
 
     usr.verify_session(binascii.unhexlify(j['M']))
     if not usr.authenticated():
@@ -67,9 +67,16 @@ else:
 
        	# Handy regular expression to match numbers
         pattern = re.compile('(-?[0-9]+\.?[0-9]+)')
+        # Regular expression to match uptime
+        pattern_uptime = re.compile('([0-9]+ [a-z]+)')
+        # Regular expression to match only integers
+        pattern_int = re.compile('([0-9]+)')
 
         uptime_html  = repr(bs.body.find(id='dsl_uptime'))
-        uptime = pattern.findall(uptime_html)
+        uptime = pattern_uptime.findall(uptime_html)
+        for i in range(0, len(uptime)):
+            uptime_list = pattern_int.findall(uptime[i])
+            uptime[i] = int(uptime_list[0])
 
         max_linerate_html = repr(bs.body.find(id='dsl_max_linerate'))
         max_linerate = pattern.findall(max_linerate_html)
@@ -93,14 +100,17 @@ else:
       	# If < 1 day, than the first number is the number of hours,
       	# If < 1 hour, then the first number is the number of minutes,
       	# If < 1 minute, then the first (and only) number is the number of seconds
-        if (len(uptime) == 4):
-            uptime_value = int(uptime[3]) + int(uptime[2])*60 + int(uptime[1])*60*60 + int(uptime[0])*60*60*24
-        if (len(uptime) == 3):
-            uptime_value = int(uptime[2]) + int(uptime[1])*60 + int(uptime[0])*60*60
-        if (len(uptime) == 2):
-            uptime_value = int(uptime[1]) + int(uptime[0])*60
-        if (len(uptime) == 1):
-            uptime_value = int(uptime)
+        try:
+            if (len(uptime) == 4):
+                uptime_value = int(uptime[3]) + int(uptime[2])*60 + int(uptime[1])*60*60 + int(uptime[0])*60*60*24
+            if (len(uptime) == 3):
+                uptime_value = int(uptime[2]) + int(uptime[1])*60 + int(uptime[0])*60*60
+            if (len(uptime) == 2):
+                uptime_value = int(uptime[1]) + int(uptime[0])*60
+            if (len(uptime) == 1):
+                uptime_value = int(uptime[0])
+        except:
+                uptime_value = ''
 
         dsl_data = {
             'uptime': uptime_value,
